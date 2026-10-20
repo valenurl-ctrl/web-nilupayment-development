@@ -63,6 +63,7 @@ const menuCategories = [
 ];
 const categories = ["Semua", ...menuCategories];
 const cart = new Map();
+const reviewStorageKey = "n24hours-reviews";
 const tableParam = new URLSearchParams(window.location.search).get("table");
 const tableNumber = tableParam && /^\d{1,3}$/.test(tableParam) ? tableParam : "05";
 const rupiah = new Intl.NumberFormat("id-ID", {
@@ -78,10 +79,13 @@ const modalContent = document.querySelector("#modal-content");
 const modalClose = document.querySelector("#modal-close");
 const cartDock = document.querySelector("#cart-dock");
 const toast = document.querySelector("#toast");
+const reviewSummary = document.querySelector("#review-summary");
 let activeCategory = "Semua";
 let toastTimer;
+let reviews = loadReviews();
 
 document.querySelector("#table-label").textContent = `MEJA ${tableNumber.padStart(2, "0")}`;
+updateReviewSummary();
 
 function renderCategories() {
   categoryList.innerHTML = categories
@@ -189,6 +193,105 @@ function showToast(message) {
   toast.classList.add("visible");
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 1900);
+}
+
+function isReview(value) {
+  return (
+    value &&
+    Number.isInteger(value.rating) &&
+    value.rating >= 1 &&
+    value.rating <= 5 &&
+    typeof value.text === "string" &&
+    typeof value.createdAt === "string" &&
+    !Number.isNaN(Date.parse(value.createdAt))
+  );
+}
+
+function loadReviews() {
+  try {
+    const storedReviews = window.localStorage.getItem(reviewStorageKey);
+    if (!storedReviews) return [];
+    const parsedReviews = JSON.parse(storedReviews);
+    if (!Array.isArray(parsedReviews) || !parsedReviews.every(isReview)) {
+      throw new Error("Format ulasan tersimpan tidak valid.");
+    }
+    return parsedReviews;
+  } catch (error) {
+    console.error("Gagal memuat ulasan:", error);
+    showToast("Ulasan tersimpan tidak dapat dibaca.");
+    return [];
+  }
+}
+
+function updateReviewSummary() {
+  if (reviews.length === 0) {
+    reviewSummary.textContent = "Rating";
+    return;
+  }
+  const averageRating =
+    reviews.reduce((total, review) => total + review.rating, 0) / reviews.length;
+  reviewSummary.textContent = `${averageRating.toFixed(1)} (${reviews.length})`;
+}
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, (character) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[character];
+  });
+}
+
+function showReviews() {
+  const averageRating = reviews.length
+    ? (reviews.reduce((total, review) => total + review.rating, 0) / reviews.length).toFixed(1)
+    : "—";
+  const reviewList = reviews.length
+    ? reviews
+        .map(
+          (review) => `
+            <article class="review-card">
+              <div class="review-card-heading">
+                <span class="review-stars" aria-label="${review.rating} dari 5 bintang">${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)}</span>
+                <time>${new Date(review.createdAt).toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}</time>
+              </div>
+              <p>${escapeHTML(review.text)}</p>
+            </article>
+          `,
+        )
+        .join("")
+    : '<p class="review-empty">Belum ada ulasan. Jadilah yang pertama!</p>';
+
+  openModal(`
+    <p class="modal-kicker">CERITAKAN PENGALAMANMU</p>
+    <h2 class="modal-title" id="modal-title">Ulasan pelanggan</h2>
+    <div class="review-rating-summary"><span aria-hidden="true">★</span> ${averageRating} <small>· ${reviews.length} ulasan</small></div>
+    <div class="review-list">${reviewList}</div>
+    <form class="review-form" id="review-form">
+      <h3>Tulis ulasan</h3>
+      <label for="review-rating">Rating</label>
+      <select id="review-rating" name="rating" required>
+        <option value="">Pilih rating</option>
+        <option value="5">★★★★★ — Sangat puas</option>
+        <option value="4">★★★★☆ — Puas</option>
+        <option value="3">★★★☆☆ — Cukup</option>
+        <option value="2">★★☆☆☆ — Kurang puas</option>
+        <option value="1">★☆☆☆☆ — Tidak puas</option>
+      </select>
+      <label for="review-text">Komentar</label>
+      <textarea id="review-text" name="text" rows="3" maxlength="500" placeholder="Bagikan pengalamanmu..." required></textarea>
+      <button class="button button-dark button-wide" type="submit">Kirim ulasan</button>
+      <p class="review-note">Ulasan disimpan di browser perangkat ini.</p>
+    </form>
+  `);
 }
 
 function openModal(content) {
@@ -311,6 +414,7 @@ menuGrid.addEventListener("click", (event) => {
 });
 
 document.querySelector("#open-cart").addEventListener("click", showCart);
+document.querySelector("#open-reviews").addEventListener("click", showReviews);
 modalClose.addEventListener("click", closeModal);
 modalBackdrop.addEventListener("click", (event) => {
   if (event.target === modalBackdrop) closeModal();
@@ -331,6 +435,34 @@ modalContent.addEventListener("click", (event) => {
     return;
   }
   if (event.target.closest("#finish-order")) closeModal();
+});
+
+modalContent.addEventListener("submit", (event) => {
+  if (event.target.id !== "review-form") return;
+  event.preventDefault();
+
+  const formData = new FormData(event.target);
+  const rating = Number(formData.get("rating"));
+  const text = String(formData.get("text")).trim();
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5 || !text) {
+    showToast("Pilih rating dan tulis komentar terlebih dahulu.");
+    return;
+  }
+
+  const updatedReviews = [
+    { rating, text, createdAt: new Date().toISOString() },
+    ...reviews,
+  ];
+  try {
+    window.localStorage.setItem(reviewStorageKey, JSON.stringify(updatedReviews));
+    reviews = updatedReviews;
+    updateReviewSummary();
+    showReviews();
+    showToast("Terima kasih atas ulasanmu!");
+  } catch (error) {
+    console.error("Gagal menyimpan ulasan:", error);
+    showToast("Ulasan gagal disimpan di browser ini.");
+  }
 });
 
 document.addEventListener("keydown", (event) => {
