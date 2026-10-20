@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#164b38" />
+    <meta
+      name="description"
+      content="Pilih menu N-24HOURS dan pesan langsung dari meja Anda."
+    />
+    <title>N-24HOURS — Pesan dari Meja</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="wordmark" href="#" aria-label="N-24HOURS beranda">N-24HOURS</a>
+        <div class="table-badge" aria-label="Nomor meja">
+          <span class="table-icon" aria-hidden="true"></span>
+          <span id="table-label">MEJA 05</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="welcome">
+          <div class="welcome-copy">
+            <p class="eyebrow"><span class="status-dot"></span> SOROWAJAN · YOGYAKARTA</p>
+            <h1>N-24HOURS</h1>
+            <p class="welcome-note">Silahkan memilih menu favoritmu.</p>
+            <div class="hero-menu-label">BEVERAGE MENU</div>
+          </div>
+          <div class="welcome-art" aria-hidden="true">
+            <div class="sun-disc"></div>
+            <div class="leaf leaf-one"></div>
+            <div class="leaf leaf-two"></div>
+            <div class="art-cup"><span></span></div>
+            <div class="art-saucer"></div>
+          </div>
+        </section>
+
+        <section class="menu-section" aria-labelledby="menu-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">MENU N-24HOURS</p>
+              <h2 id="menu-heading">Pilihan untuk setiap suasana.</h2>
+            </div>
+            <span class="menu-count" id="menu-count"></span>
+          </div>
+
+          <nav class="category-list" id="category-list" aria-label="Kategori menu"></nav>
+          <div class="menu-grid" id="menu-grid" aria-live="polite"></div>
+        </section>
+
+        <footer class="page-footer">
+          <span class="footer-mark">N-24HOURS</span>
+          <span>Good food, any time.</span>
+        </footer>
+      </main>
+
+      <div class="cart-dock" id="cart-dock" hidden>
+        <div class="cart-dock-info">
+          <span class="cart-count" id="cart-count">0</span>
+          <span><strong id="dock-total">Rp0</strong><small>Belum termasuk pajak</small></span>
+        </div>
+        <button class="button button-dark dock-button" id="open-cart">
+          Lihat pesanan <span aria-hidden="true">↗</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal-backdrop" hidden>
+      <section
+        class="modal"
+        id="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
+        <button class="modal-close" id="modal-close" aria-label="Tutup">×</button>
+        <div id="modal-content"></div>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
